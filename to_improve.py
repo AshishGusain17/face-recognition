@@ -1,4 +1,4 @@
-# python main_video.py -d caffe_model -m openface_nn4.small2.v1.t7 -r output/recognizer.pickle -e output/encoder.pickle
+# python count-vector.py -d caffe_model -m openface_nn4.small2.v1.t7  -e output/vector_embeddings.pickle
 
 from imutils.video import VideoStream
 from imutils.video import FPS
@@ -8,8 +8,7 @@ import argparse, imutils, pickle, time, cv2, os
 ap = argparse.ArgumentParser()
 ap.add_argument("-d", "--detector",           required=True,help="path to OpenCV's deep learning face detector")
 ap.add_argument("-m", "--embedding-model",    required=True,help="path to OpenCV's deep learning face embedding model")
-ap.add_argument("-r", "--recognizer",         required=True,help="path to model trained to recognize faces")
-ap.add_argument("-e", "--encoder",            required=True,help="path to label encoder")
+ap.add_argument("-e", "--embeddings",         required=True,help="path to serialized db of facial embeddings")
 ap.add_argument("-c", "--confidence", type=float, default=0.5,help="minimum probability to filter weak detections")
 args = vars(ap.parse_args())
 
@@ -23,10 +22,6 @@ detector = cv2.dnn.readNetFromCaffe(protoPath, modelPath)
 print("Loading face recognizer...")
 embedder = cv2.dnn.readNetFromTorch(args["embedding_model"])
 
-# load the actual face recognition model along with the label encoder
-recognizer = pickle.loads(open(args["recognizer"], "rb").read())
-encoder = pickle.loads(open(args["encoder"], "rb").read())
-
 # initialize the video stream, then allow the camera sensor to warm up
 print("Starting video stream...")
 vs = VideoStream(src=0).start()
@@ -35,7 +30,24 @@ time.sleep(2.0)
 # start the FPS throughput estimator
 fps = FPS().start()
 
+
+print("Loading face embeddings from other file...")
+data = pickle.loads(open(args["embeddings"], "rb").read())
+
+names=["ashish",'shirley']
+persons=len(names)
+flag=[0]*persons
+for ii in range(persons):
+	ans=data['names'].count(names[ii])
+	flag[ii]=ans
+print(flag)
+print(names)
+print(data['names'])
+
+embeddings=data['embeddings']
+
 while True:
+	# break
 	frame = vs.read()
 
 	# resize the frame to have a width of 600 pixels (while maintaining the aspect ratio), and then grab the image dimensions
@@ -72,12 +84,30 @@ while True:
 			embedder.setInput(faceBlob)
 			vec = embedder.forward()
 
-			# classifying the face
-			preds = recognizer.predict_proba(vec)[0]
+
+			ch=[0]*len(embeddings)
+			for ind,ll in enumerate(embeddings):
+				sub=np.sum((np.array(vec)-np.array(ll))**2)**(1/2)
+				ch[ind]=sub
+				print(sub)
+
+			go=0
+			preds=[0]*persons
+			for ind,ii in enumerate(flag):
+				ans=ch[go:go+ii]
+				preds[ind]=np.sum(ans)/ii
+				print(ans,ind,ii)
+				go=ii
 			print(preds)
-			j = np.argmax(preds)
+
+	# break
+
+
+
+			# classifying the face
+			j = np.argmin(preds)
 			proba = preds[j]
-			name = encoder.classes_[j]
+			name = names[j]
 
 			text = "{}: {:.2f}%".format(name, proba * 100)
 			y = startY - 10 if startY - 10 > 10 else startY + 10

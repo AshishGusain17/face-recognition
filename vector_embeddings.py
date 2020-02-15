@@ -91,3 +91,16 @@ data = {"embeddings": knownEmbeddings, "names": knownNames}
 f = open(args["embeddings"], "wb")
 f.write(pickle.dumps(data))
 f.close()
+
+
+
+# 0 1    90%
+
+#0 0    upgood/downwrong
+
+
+
+# 1 1 best
+
+# 1 0 good/wrong
+

@@ -36,7 +36,7 @@ image = imutils.resize(image, width=600)
 # construct a blob from the image
 imageBlob = cv2.dnn.blobFromImage(
 	cv2.resize(image, (300, 300)), 1.0, (300, 300),
-	(104.0, 177.0, 123.0), swapRB=False, crop=False)
+	(104.0, 177.0, 123.0), swapRB=True, crop=False)
 
 # detect all the faces in the image
 detector.setInput(imageBlob)
